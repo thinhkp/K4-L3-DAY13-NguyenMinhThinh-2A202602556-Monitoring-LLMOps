@@ -24,13 +24,19 @@ class JsonlFileProcessor:
 
 
 def scrub_event(_: Any, __: str, event_dict: dict[str, Any]) -> dict[str, Any]:
-    payload = event_dict.get("payload")
-    if isinstance(payload, dict):
-        event_dict["payload"] = {
-            k: scrub_text(v) if isinstance(v, str) else v for k, v in payload.items()
-        }
-    if "event" in event_dict and isinstance(event_dict["event"], str):
-        event_dict["event"] = scrub_text(event_dict["event"])
+    # Scrub mọi chuỗi, kể cả chuỗi lồng trong dict/list, trước khi ghi hoặc in JSON.
+    def scrub_value(value: Any) -> Any:
+        if isinstance(value, str):
+            return scrub_text(value)
+        if isinstance(value, dict):
+            return {key: scrub_value(item) for key, item in value.items()}
+        if isinstance(value, list):
+            return [scrub_value(item) for item in value]
+        if isinstance(value, tuple):
+            return tuple(scrub_value(item) for item in value)
+        return value
+
+    event_dict = scrub_value(event_dict)
     return event_dict
 
 
@@ -42,10 +48,10 @@ def configure_logging() -> None:
             merge_contextvars,
             structlog.processors.add_log_level,
             structlog.processors.TimeStamper(fmt="iso", utc=True, key="ts"),
-            # TODO: Register your PII scrubbing processor here
-            # scrub_event,
             structlog.processors.StackInfoRenderer(),
             structlog.processors.format_exc_info,
+            # Scrub trước cả lúc ghi file lẫn lúc render log ra terminal.
+            scrub_event,
             JsonlFileProcessor(),
             structlog.processors.JSONRenderer(),
         ],

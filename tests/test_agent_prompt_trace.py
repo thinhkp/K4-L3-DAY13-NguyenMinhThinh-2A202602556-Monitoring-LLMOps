@@ -3,6 +3,7 @@ from __future__ import annotations
 from contextlib import contextmanager
 
 from app import agent as agent_module
+from app import mock_llm as mock_llm_module
 
 
 class ManagedPrompt:
@@ -67,3 +68,27 @@ def test_agent_records_prompt_version_with_v4_observation_api(monkeypatch) -> No
     assert span_update["version"] == "3"
     assert propagated[0]["metadata"]["correlation_id"] == "req-12345678"
     assert propagated[-1]["prompt"] is client.prompt
+
+
+def test_generation_records_model_usage_and_cost(monkeypatch) -> None:
+    class RecordingClient:
+        def __init__(self) -> None:
+            self.generation_updates: list[dict] = []
+
+        def update_current_generation(self, **kwargs) -> None:
+            self.generation_updates.append(kwargs)
+
+    client = RecordingClient()
+    monkeypatch.setattr(mock_llm_module, "get_langfuse_client", lambda: client)
+    llm = mock_llm_module.FakeLLM(model="test-model")
+
+    response = mock_llm_module.FakeLLM.generate.__wrapped__(llm, "safe test prompt")
+
+    update = client.generation_updates[-1]
+    assert update["model"] == "test-model"
+    assert update["usage_details"] == {
+        "input": response.usage.input_tokens,
+        "output": response.usage.output_tokens,
+        "total": response.usage.input_tokens + response.usage.output_tokens,
+    }
+    assert update["cost_details"]["total"] > 0

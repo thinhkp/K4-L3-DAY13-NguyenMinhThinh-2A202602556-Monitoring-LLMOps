@@ -31,6 +31,14 @@ Giữ time range mặc định 60 phút, refresh 30 giây và hiển thị thres
 python scripts/validate_dashboard.py
 ```
 
+Repository có dashboard runtime tối giản dùng Python standard library. Từ thư mục gốc, chạy:
+
+```bash
+python scripts/dashboard.py
+```
+
+Mở `http://127.0.0.1:8050`. Trang đọc `data/logs.jsonl`, tính lại sáu panel trong cửa sổ 60 phút và tự tải lại mỗi 30 giây. Dùng `Ctrl+C` trong terminal để dừng dashboard. Các panel hiển thị số liệu, đơn vị, threshold và biểu đồ; nếu cửa sổ chưa có request, hãy chạy load test trước.
+
 Validator kiểm tra cấu trúc contract; nó không thể chứng minh biểu đồ trong ảnh dùng đúng dữ liệu. Evidence runtime vẫn bắt buộc.
 
 ## Cách kiểm tra runtime

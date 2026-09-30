@@ -19,7 +19,7 @@ def scrub_text(text: str) -> str:
     return safe
 
 
-def summarize_text(text: str, max_len: int = 80) -> str:
+def summarize_text(text: str, max_len: int = 120) -> str:
     safe = scrub_text(text).strip().replace("\n", " ")
     return safe[:max_len] + ("..." if len(safe) > max_len else "")
 
